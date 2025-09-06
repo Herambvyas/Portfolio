@@ -16,7 +16,7 @@ yarn-error.log*
 .env.production.local
 
 # IDE files
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo

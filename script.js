@@ -1,5 +1,41 @@
+// Create animated background particles
+function createParticles() {
+    const particleContainer = document.createElement('div');
+    particleContainer.className = 'particles';
+    document.body.appendChild(particleContainer);
+    
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 20 + 's';
+        particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+        particleContainer.appendChild(particle);
+    }
+}
+
+// Create floating geometric shapes
+function createFloatingShapes() {
+    const shapesContainer = document.createElement('div');
+    shapesContainer.className = 'floating-shapes';
+    document.body.appendChild(shapesContainer);
+    
+    const shapes = ['circle', 'triangle', 'square'];
+    for (let i = 0; i < 8; i++) {
+        const shape = document.createElement('div');
+        shape.className = `floating-shape ${shapes[Math.floor(Math.random() * shapes.length)]}`;
+        shape.style.left = Math.random() * 100 + '%';
+        shape.style.top = Math.random() * 100 + '%';
+        shape.style.animationDelay = Math.random() * 10 + 's';
+        shapesContainer.appendChild(shape);
+    }
+}
+
 // Smooth scrolling for navigation links
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize particle effects
+    createParticles();
+    createFloatingShapes();
     // Add smooth scrolling to all links
     const links = document.querySelectorAll('a[href^="#"]');
     
@@ -135,23 +171,202 @@ document.addEventListener('DOMContentLoaded', function() {
             if (i < originalText.length) {
                 heroTitle.innerHTML += originalText.charAt(i);
                 i++;
-                setTimeout(typeWriter, 50);
+                setTimeout(typeWriter, 80);
+            } else {
+                // Add blinking cursor effect
+                heroTitle.innerHTML += '<span class="cursor">|</span>';
             }
         };
         
         setTimeout(typeWriter, 1000);
     }
 
-    // Add hover effects to project cards
-    const projectCards = document.querySelectorAll('.project-card');
+    // Add typing effect to hero subtitle
+    const heroSubtitle = document.querySelector('.hero-subtitle');
+    if (heroSubtitle) {
+        const originalText = heroSubtitle.innerHTML;
+        heroSubtitle.innerHTML = '';
+        heroSubtitle.style.opacity = '0';
+        
+        setTimeout(() => {
+            heroSubtitle.style.opacity = '1';
+            let i = 0;
+            const typeWriter = () => {
+                if (i < originalText.length) {
+                    heroSubtitle.innerHTML += originalText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            };
+            typeWriter();
+        }, 2500);
+    }
+
+    // Animate hero description with fade-in
+    const heroDescription = document.querySelector('.hero-description');
+    if (heroDescription) {
+        heroDescription.style.opacity = '0';
+        heroDescription.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            heroDescription.style.transition = 'opacity 1s ease, transform 1s ease';
+            heroDescription.style.opacity = '1';
+            heroDescription.style.transform = 'translateY(0)';
+        }, 4000);
+    }
+
+    // Social links - no animations
+    const socialLinks = document.querySelectorAll('.social-link');
+    socialLinks.forEach((link) => {
+        link.style.opacity = '1';
+        link.style.transform = 'none';
+        link.style.filter = 'none';
+        link.style.transition = 'none';
+    });
+
+    // Add floating animation to profile avatar with rotation
+    const profileAvatar = document.querySelector('.profile-avatar');
+    if (profileAvatar) {
+        let rotation = 0;
+        setInterval(() => {
+            rotation += 5;
+            profileAvatar.style.transform = `translateY(-15px) rotate(${rotation}deg) scale(1.05)`;
+            setTimeout(() => {
+                profileAvatar.style.transform = `translateY(0) rotate(${rotation}deg) scale(1)`;
+            }, 1500);
+        }, 4000);
+    }
+
+    // Optimized mouse trail effect with throttling
+    let mouseTrail = [];
+    let lastTrailTime = 0;
+    document.addEventListener('mousemove', (e) => {
+        const now = Date.now();
+        if (now - lastTrailTime < 50) return; // Throttle to every 50ms
+        lastTrailTime = now;
+        
+        mouseTrail.push({ x: e.clientX, y: e.clientY, time: now });
+        
+        // Create trail dot
+        const dot = document.createElement('div');
+        dot.className = 'mouse-trail';
+        dot.style.left = e.clientX + 'px';
+        dot.style.top = e.clientY + 'px';
+        document.body.appendChild(dot);
+        
+        setTimeout(() => {
+            dot.remove();
+        }, 800);
+        
+        // Keep only recent trail points
+        mouseTrail = mouseTrail.filter(point => now - point.time < 800);
+    });
+
+    // Add text reveal animation on scroll
+    const textElements = document.querySelectorAll('p, h1, h2, h3');
+    const textObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animation = 'textReveal 1s ease forwards';
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    textElements.forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        textObserver.observe(el);
+    });
+
+    // Add glitch effect to hero title on hover
+    if (heroTitle) {
+        heroTitle.addEventListener('mouseenter', () => {
+            heroTitle.style.animation = 'glitch 0.5s ease-in-out';
+        });
+        
+        heroTitle.addEventListener('mouseleave', () => {
+            heroTitle.style.animation = 'none';
+        });
+    }
+
+    // Add hover effects to project cards and skill items
+    const projectCards = document.querySelectorAll('.project-card, .skill-item, .contact-method');
     projectCards.forEach(card => {
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-10px) scale(1.02)';
+            this.style.transform = 'translateY(-10px) scale(1.05)';
+            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)';
         });
         
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
         });
+    });
+
+    // Add pulse animation to navigation links on hover
+    navLinks.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            this.style.animation = 'pulse 0.6s ease-in-out';
+        });
+        
+        link.addEventListener('mouseleave', function() {
+            this.style.animation = 'none';
+        });
+    });
+
+    // Add shake animation to stats when they animate
+    const stats = document.querySelectorAll('.stat');
+    stats.forEach(stat => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.animation = 'shake 0.8s ease-in-out';
+                    }, 500);
+                }
+            });
+        });
+        observer.observe(stat);
+    });
+
+    // Optimized parallax effect with throttling
+    let ticking = false;
+    function updateParallax() {
+        const scrolled = window.pageYOffset;
+        const parallaxElements = document.querySelectorAll('.hero, .about, .skills, .projects, .contact');
+        
+        parallaxElements.forEach((element, index) => {
+            const speed = 0.3 + (index * 0.05);
+            element.style.transform = `translate3d(0, ${scrolled * speed * 0.05}px, 0)`;
+        });
+        
+        ticking = false;
+    }
+    
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            requestAnimationFrame(updateParallax);
+            ticking = true;
+        }
+    });
+
+    // Add section entrance animations with different effects
+    const sectionAnimations = ['slideInLeft', 'slideInRight', 'zoomIn', 'rotateIn', 'bounceIn'];
+    const animatedSections = document.querySelectorAll('section');
+    
+    animatedSections.forEach((section, index) => {
+        const animation = sectionAnimations[index % sectionAnimations.length];
+        section.style.opacity = '0';
+        
+        const sectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = `${animation} 1s ease forwards`;
+                    entry.target.style.opacity = '1';
+                }
+            });
+        }, { threshold: 0.2 });
+        
+        sectionObserver.observe(section);
     });
 
     // Add click effect to buttons
@@ -178,12 +393,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Add CSS for ripple effect
+// Add CSS for enhanced animations
 const style = document.createElement('style');
 style.textContent = `
     .btn {
         position: relative;
         overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
     
     .ripple {
@@ -199,6 +420,284 @@ style.textContent = `
         to {
             transform: scale(4);
             opacity: 0;
+        }
+    }
+    
+    .cursor {
+        animation: blink 1s infinite;
+        color: #007bff;
+    }
+    
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .profile-avatar {
+        transition: transform 1s ease-in-out;
+    }
+    
+    .social-link {
+        transition: all 0.3s ease;
+        transform: scale(1);
+    }
+    
+    .social-link:hover {
+        color: #007bff;
+        transform: scale(1.2);
+        text-shadow: 0 0 15px rgba(0, 123, 255, 0.8);
+        filter: drop-shadow(0 0 10px rgba(0, 123, 255, 0.6));
+    }
+    
+    .social-link:active {
+        color: #0056b3;
+        transform: scale(1.1);
+    }
+    
+    .nav-link {
+        transition: all 0.3s ease;
+    }
+    
+    .section-title {
+        animation: fadeInUp 1s ease;
+    }
+    
+    .contact-method, .skill-item {
+        transition: all 0.3s ease;
+    }
+    
+    /* Particle Effects */
+    .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+    
+    .particle {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: #007bff;
+        border-radius: 50%;
+        animation: float 20s infinite linear;
+        opacity: 0.5;
+        will-change: transform;
+    }
+    
+    @keyframes float {
+        0% {
+            transform: translateY(100vh) rotate(0deg);
+            opacity: 0;
+        }
+        10% {
+            opacity: 0.7;
+        }
+        90% {
+            opacity: 0.7;
+        }
+        100% {
+            transform: translateY(-100px) rotate(360deg);
+            opacity: 0;
+        }
+    }
+    
+    /* Floating Shapes */
+    .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+    }
+    
+    .floating-shape {
+        position: absolute;
+        animation: floatShape 25s infinite ease-in-out;
+        opacity: 0.08;
+        will-change: transform;
+    }
+    
+    .floating-shape.circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #007bff;
+    }
+    
+    .floating-shape.triangle {
+        width: 0;
+        height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-bottom: 20px solid #00d4ff;
+    }
+    
+    .floating-shape.square {
+        width: 15px;
+        height: 15px;
+        background: #ff6b6b;
+        transform: rotate(45deg);
+    }
+    
+    @keyframes floatShape {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+        }
+        25% {
+            transform: translateY(-20px) rotate(90deg);
+        }
+        50% {
+            transform: translateY(-40px) rotate(180deg);
+        }
+        75% {
+            transform: translateY(-20px) rotate(270deg);
+        }
+    }
+    
+    /* Mouse Trail */
+    .mouse-trail {
+        position: fixed;
+        width: 4px;
+        height: 4px;
+        background: #007bff;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        animation: trailFade 0.8s ease-out forwards;
+        will-change: transform, opacity;
+    }
+    
+    @keyframes trailFade {
+        0% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(0.2);
+        }
+    }
+    
+    /* Text Reveal Animation */
+    @keyframes textReveal {
+        0% {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Glitch Effect */
+    @keyframes glitch {
+        0% {
+            transform: translate(0);
+        }
+        20% {
+            transform: translate(-2px, 2px);
+        }
+        40% {
+            transform: translate(-2px, -2px);
+        }
+        60% {
+            transform: translate(2px, 2px);
+        }
+        80% {
+            transform: translate(2px, -2px);
+        }
+        100% {
+            transform: translate(0);
+        }
+    }
+    
+    /* Section Entrance Animations */
+    @keyframes slideInLeft {
+        0% {
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideInRight {
+        0% {
+            opacity: 0;
+            transform: translateX(100px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes zoomIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes rotateIn {
+        0% {
+            opacity: 0;
+            transform: rotate(-180deg) scale(0.5);
+        }
+        100% {
+            opacity: 1;
+            transform: rotate(0deg) scale(1);
+        }
+    }
+    
+    @keyframes bounceIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
         }
     }
 `;
