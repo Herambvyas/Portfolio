@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(section);
     });
 
-    // Add typing effect to hero title
+    // Add typing effect to hero title with blinking name
     const heroTitle = document.querySelector('.hero-title');
     if (heroTitle) {
         const originalText = heroTitle.innerHTML;
@@ -179,8 +179,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 i++;
                 setTimeout(typeWriter, 80);
             } else {
-                // Add blinking cursor effect
-                heroTitle.innerHTML += '<span class="cursor">|</span>';
+                // Make entire name blink instead of just cursor
+                heroTitle.innerHTML = `<span class="blinking-name">${originalText}</span>`;
             }
         };
         
@@ -396,6 +396,11 @@ style.textContent = `
     .cursor {
         animation: blink 1s infinite;
         color: #007bff;
+    }
+    
+    .blinking-name {
+        animation: blink 1.5s infinite;
+        color: #ff6b9d;
     }
     
     @keyframes blink {
