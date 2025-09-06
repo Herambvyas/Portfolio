@@ -399,7 +399,6 @@ style.textContent = `
     }
     
     .blinking-name {
-        animation: blink 1.5s infinite;
         color: #ff6b9d;
         display: inline;
     }
