@@ -4,7 +4,7 @@ function createParticles() {
     particleContainer.className = 'particles';
     document.body.appendChild(particleContainer);
     
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 8; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         particle.style.left = Math.random() * 100 + '%';
@@ -21,7 +21,7 @@ function createFloatingShapes() {
     document.body.appendChild(shapesContainer);
     
     const shapes = ['circle', 'triangle', 'square'];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) {
         const shape = document.createElement('div');
         shape.className = `floating-shape ${shapes[Math.floor(Math.random() * shapes.length)]}`;
         shape.style.left = Math.random() * 100 + '%';
@@ -223,43 +223,18 @@ document.addEventListener('DOMContentLoaded', function() {
         link.style.transition = 'none';
     });
 
-    // Add floating animation to profile avatar with rotation
+    // Simplified profile avatar animation - just gentle floating
     const profileAvatar = document.querySelector('.profile-avatar');
     if (profileAvatar) {
-        let rotation = 0;
         setInterval(() => {
-            rotation += 5;
-            profileAvatar.style.transform = `translateY(-15px) rotate(${rotation}deg) scale(1.05)`;
+            profileAvatar.style.transform = 'translateY(-8px)';
             setTimeout(() => {
-                profileAvatar.style.transform = `translateY(0) rotate(${rotation}deg) scale(1)`;
-            }, 1500);
-        }, 4000);
+                profileAvatar.style.transform = 'translateY(0)';
+            }, 1000);
+        }, 3000);
     }
 
-    // Optimized mouse trail effect with throttling
-    let mouseTrail = [];
-    let lastTrailTime = 0;
-    document.addEventListener('mousemove', (e) => {
-        const now = Date.now();
-        if (now - lastTrailTime < 50) return; // Throttle to every 50ms
-        lastTrailTime = now;
-        
-        mouseTrail.push({ x: e.clientX, y: e.clientY, time: now });
-        
-        // Create trail dot
-        const dot = document.createElement('div');
-        dot.className = 'mouse-trail';
-        dot.style.left = e.clientX + 'px';
-        dot.style.top = e.clientY + 'px';
-        document.body.appendChild(dot);
-        
-        setTimeout(() => {
-            dot.remove();
-        }, 800);
-        
-        // Keep only recent trail points
-        mouseTrail = mouseTrail.filter(point => now - point.time < 800);
-    });
+    // Mouse trail disabled - was too distracting
 
     // Add text reveal animation on scroll
     const textElements = document.querySelectorAll('p, h1, h2, h3');
@@ -277,16 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
         textObserver.observe(el);
     });
 
-    // Add glitch effect to hero title on hover
-    if (heroTitle) {
-        heroTitle.addEventListener('mouseenter', () => {
-            heroTitle.style.animation = 'glitch 0.5s ease-in-out';
-        });
-        
-        heroTitle.addEventListener('mouseleave', () => {
-            heroTitle.style.animation = 'none';
-        });
-    }
+    // Remove glitch effect - was causing name to disappear
 
     // Add hover effects to project cards and skill items
     const projectCards = document.querySelectorAll('.project-card, .skill-item, .contact-method');
@@ -349,18 +315,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add section entrance animations with different effects
-    const sectionAnimations = ['slideInLeft', 'slideInRight', 'zoomIn', 'rotateIn', 'bounceIn'];
+    // Simplified section animations - just fade in
     const animatedSections = document.querySelectorAll('section');
     
-    animatedSections.forEach((section, index) => {
-        const animation = sectionAnimations[index % sectionAnimations.length];
+    animatedSections.forEach((section) => {
         section.style.opacity = '0';
         
         const sectionObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    entry.target.style.animation = `${animation} 1s ease forwards`;
+                    entry.target.style.animation = 'fadeInUp 0.8s ease forwards';
                     entry.target.style.opacity = '1';
                 }
             });
@@ -502,12 +466,12 @@ style.textContent = `
     
     .particle {
         position: absolute;
-        width: 3px;
-        height: 3px;
+        width: 2px;
+        height: 2px;
         background: #007bff;
         border-radius: 50%;
-        animation: float 20s infinite linear;
-        opacity: 0.5;
+        animation: float 25s infinite linear;
+        opacity: 0.3;
         will-change: transform;
     }
     
@@ -541,8 +505,8 @@ style.textContent = `
     
     .floating-shape {
         position: absolute;
-        animation: floatShape 25s infinite ease-in-out;
-        opacity: 0.08;
+        animation: floatShape 30s infinite ease-in-out;
+        opacity: 0.05;
         will-change: transform;
     }
     
