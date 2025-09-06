@@ -36,15 +36,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize particle effects
     createParticles();
     createFloatingShapes();
-    // Add smooth scrolling to all links
+    // Add smooth scrolling to internal navigation links only
     const links = document.querySelectorAll('a[href^="#"]');
     
     links.forEach(link => {
         link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            
+            // Don't prevent default for mailto, tel, or external links
+            if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('http')) {
+                return; // Let the browser handle these links normally
+            }
+            
             e.preventDefault();
             
-            const targetId = this.getAttribute('href');
-            const targetSection = document.querySelector(targetId);
+            const targetSection = document.querySelector(href);
             
             if (targetSection) {
                 targetSection.scrollIntoView({
