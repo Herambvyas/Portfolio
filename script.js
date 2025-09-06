@@ -166,25 +166,13 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(section);
     });
 
-    // Add typing effect to hero title with blinking name
+    // Keep hero title static - no animations
     const heroTitle = document.querySelector('.hero-title');
     if (heroTitle) {
-        const originalText = heroTitle.innerHTML;
-        heroTitle.innerHTML = '';
-        
-        let i = 0;
-        const typeWriter = () => {
-            if (i < originalText.length) {
-                heroTitle.innerHTML += originalText.charAt(i);
-                i++;
-                setTimeout(typeWriter, 80);
-            } else {
-                // Make entire name blink instead of just cursor
-                heroTitle.innerHTML = `<span class="blinking-name">${originalText}</span>`;
-            }
-        };
-        
-        setTimeout(typeWriter, 1000);
+        // Just make sure the name is visible with pink color
+        heroTitle.style.color = '#ff6b9d';
+        heroTitle.style.opacity = '1';
+        heroTitle.style.display = 'block';
     }
 
     // Add typing effect to hero subtitle
