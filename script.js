@@ -430,14 +430,14 @@ style.textContent = `
     }
     
     .social-link:hover {
-        color: #007bff;
+        color: #ff6b9d;
         transform: scale(1.2);
-        text-shadow: 0 0 15px rgba(0, 123, 255, 0.8);
-        filter: drop-shadow(0 0 10px rgba(0, 123, 255, 0.6));
+        text-shadow: 0 0 15px rgba(255, 107, 157, 0.8);
+        filter: drop-shadow(0 0 10px rgba(255, 107, 157, 0.6));
     }
     
     .social-link:active {
-        color: #0056b3;
+        color: #e91e63;
         transform: scale(1.1);
     }
     
