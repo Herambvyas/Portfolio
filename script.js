@@ -401,11 +401,12 @@ style.textContent = `
     .blinking-name {
         animation: blink 1.5s infinite;
         color: #ff6b9d;
+        display: inline;
     }
     
     @keyframes blink {
-        0%, 50% { opacity: 1; }
-        51%, 100% { opacity: 0; }
+        0%, 70% { opacity: 1; }
+        71%, 100% { opacity: 0.3; }
     }
     
     @keyframes pulse {
