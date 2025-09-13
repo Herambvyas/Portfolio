@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster Pro | Heramb Vyas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="taskmaster.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <a href="index.html" class="back-button"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+    
+    <div class="taskmaster-container">
+        <header class="taskmaster-header">
+            <h1><i class="fas fa-tasks"></i> TaskMaster Pro</h1>
+            <p>Your personal task management solution</p>
+        </header>
+
+        <div class="task-input-container">
+            <input type="text" id="taskInput" placeholder="Add a new task..." class="task-input">
+            <button id="addTaskBtn" class="add-button"><i class="fas fa-plus"></i> Add Task</button>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="active">Active</button>
+            <button class="filter-btn" data-filter="completed">Completed</button>
+        </div>
+
+        <div class="task-stats">
+            <span id="taskCount">0 tasks left</span>
+            <button id="clearCompleted" class="clear-btn">Clear Completed</button>
+        </div>
+
+        <ul id="taskList" class="task-list">
+            <!-- Tasks will be added here dynamically -->
+        </ul>
+    </div>
+
+    <footer class="taskmaster-footer">
+        <p>Created with ❤️ by Heramb Vyas</p>
+    </footer>
+
+    <script src="taskmaster.js"></script>
+</body>
+</html>
