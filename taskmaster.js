@@ -60,33 +60,40 @@ let currentFilter = 'all';
 
 // Initialize the app
 function init() {
-    // Initialize theme
-    initTheme();
-    
     // Load tasks from localStorage
-    renderTasks();
-    
-    // Event Listeners
+    const savedTasks = localStorage.getItem('tasks');
+    if (savedTasks) {
+        tasks = JSON.parse(savedTasks);
+    }
+
+    // Set up event listeners
     addTaskBtn.addEventListener('click', addTask);
     taskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addTask();
+        if (e.key === 'Enter') {
+            addTask();
+        }
     });
-    
     clearCompletedBtn.addEventListener('click', clearCompleted);
-    
-    // Filter buttons
+    themeToggle.addEventListener('click', toggleTheme);
+
+    // Set up filter buttons
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Remove active class from all buttons
             filterButtons.forEach(btn => btn.classList.remove('active'));
-            // Add active class to clicked button
             button.classList.add('active');
-            // Set current filter
             currentFilter = button.dataset.filter;
-            // Re-render tasks with new filter
             renderTasks();
         });
     });
+
+    // Initialize theme
+    initTheme();
+
+    // Render initial tasks
+    renderTasks();
+    
+    // Initialize progress bar
+    updateTaskCount();
 }
 
 // Add a new task
@@ -151,10 +158,48 @@ function saveTasks() {
     updateTaskCount();
 }
 
-// Update the task counter
+// Update the task counter and progress bar
 function updateTaskCount() {
     const activeTasks = tasks.filter(task => !task.completed).length;
-    taskCount.textContent = `${activeTasks} ${activeTasks === 1 ? 'task' : 'tasks'} left`;
+    const totalTasks = tasks.length;
+    const taskWord = activeTasks === 1 ? 'task' : 'tasks';
+    taskCount.textContent = `${activeTasks} ${taskWord} left`;
+    
+    // Update progress bar
+    updateProgressBar(totalTasks, activeTasks);
+}
+
+// Update the progress bar
+function updateProgressBar(totalTasks, activeTasks) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    if (totalTasks === 0) {
+        progressBar.style.width = '0%';
+        progressText.textContent = '0% Complete';
+        return;
+    }
+    
+    const completedTasks = totalTasks - activeTasks;
+    const progress = Math.round((completedTasks / totalTasks) * 100);
+    
+    // Update progress bar width with animation
+    progressBar.style.setProperty('--progress-width', `${progress}%`);
+    progressBar.style.width = `${progress}%`;
+    
+    // Update progress text
+    progressText.textContent = `${progress}% Complete`;
+    
+    // Change color based on progress
+    if (progress < 25) {
+        progressBar.style.backgroundColor = '#ff5252'; // Red
+    } else if (progress < 50) {
+        progressBar.style.backgroundColor = '#ff9800'; // Orange
+    } else if (progress < 75) {
+        progressBar.style.backgroundColor = '#4caf50'; // Light green
+    } else {
+        progressBar.style.backgroundColor = '#2e7d32'; // Dark green
+    }
 }
 
 // Create task element
