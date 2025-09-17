@@ -6,7 +6,35 @@ const taskCount = document.getElementById('taskCount');
 const clearCompletedBtn = document.getElementById('clearCompleted');
 const filterButtons = document.querySelectorAll('.filter-btn');
 const themeToggle = document.getElementById('themeToggle');
-const themeIcon = themeToggle.querySelector('i');
+const themeIcon = themeToggle ? themeToggle.querySelector('i') : null;
+
+// Login elements
+const loginModal = document.getElementById('loginModal');
+const usernameInput = document.getElementById('usernameInput');
+const startBtn = document.getElementById('startBtn');
+const userGreeting = document.getElementById('userGreeting');
+const coinCount = document.getElementById('coinCount');
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+const leaderboardContainer = document.getElementById('leaderboardContainer');
+const leaderboardList = document.getElementById('leaderboardList');
+const toast = document.getElementById('toast');
+const toastMessage = document.getElementById('toastMessage');
+
+// Game state
+let user = {
+    name: '',
+    coins: 0,
+    lastCompletedDate: null,
+    dailyStreak: 0
+};
+
+// Leaderboard data
+let leaderboard = [];
+
+// Constants
+const COIN_REWARD_TASK = 10;
+const COIN_REWARD_DAILY = 30;
+const STORAGE_KEY = 'taskmaster_data';
 
 // Theme Management
 const THEME_KEY = 'taskmaster-theme';
@@ -58,38 +86,85 @@ if (themeToggle) {
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let currentFilter = 'all';
 
+// Update the active filter button
+function updateActiveFilterButton() {
+    if (!filterButtons) return;
+    
+    filterButtons.forEach(button => {
+        if (button.dataset.filter === currentFilter) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
 // Initialize the app
 function init() {
-    // Load tasks from localStorage
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-        tasks = JSON.parse(savedTasks);
+    // Load user data and tasks
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+        const data = JSON.parse(savedData);
+        user = data.user || user;
+        tasks = data.tasks || [];
+        leaderboard = data.leaderboard || [];
+        
+        // Check if it's a new day for daily streak
+        checkDailyStreak();
+        
+        // If user is logged in, show the app
+        if (user.name) {
+            showApp();
+        } else {
+            showLogin();
+        }
+    } else {
+        showLogin();
     }
 
     // Set up event listeners
-    addTaskBtn.addEventListener('click', addTask);
-    taskInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            addTask();
-        }
-    });
-    clearCompletedBtn.addEventListener('click', clearCompleted);
-    themeToggle.addEventListener('click', toggleTheme);
+    if (addTaskBtn) addTaskBtn.addEventListener('click', addTask);
+    if (taskInput) {
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+    }
+
+    if (clearCompletedBtn) clearCompletedBtn.addEventListener('click', clearCompleted);
 
     // Set up filter buttons
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            currentFilter = button.dataset.filter;
-            renderTasks();
+    if (filterButtons) {
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                currentFilter = button.dataset.filter;
+                updateActiveFilterButton();
+                renderTasks();
+            });
         });
-    });
+    }
+
+    // Set up login form
+    if (startBtn) startBtn.addEventListener('click', startApp);
+    if (usernameInput) {
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startApp();
+            }
+        });
+    }
+    
+    // Set up leaderboard button
+    if (leaderboardBtn) leaderboardBtn.addEventListener('click', toggleLeaderboard);
 
     // Initialize theme
     initTheme();
-
-    // Render initial tasks
+    
+    // Update the active filter button
+    updateActiveFilterButton();
+    
+    // Initial render
     renderTasks();
     
     // Initialize progress bar
@@ -101,61 +176,366 @@ function addTask() {
     const taskText = taskInput.value.trim();
     
     if (taskText) {
+        const now = new Date().toISOString();
         const newTask = {
-            id: Date.now().toString(),
+            id: Date.now(),
             text: taskText,
             completed: false,
-            createdAt: new Date().toISOString()
+            createdAt: now,
+            updatedAt: now
         };
         
         tasks.unshift(newTask); // Add to beginning of array
         saveTasks();
         renderTasks();
-        taskInput.value = ''; // Clear input
+        
+        // Clear and focus input
+        taskInput.value = '';
         taskInput.focus();
+        
+        // Award coins for adding a new task
+        addCoins(COIN_REWARD_TASK, `+${COIN_REWARD_TASK} coins for adding a task!`);
+        
+        // Show success message
+        showToast('Task added successfully!');
+        
+        // Scroll to the top to show the new task
+        taskList.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 // Toggle task completion
 function toggleTask(id) {
-    tasks = tasks.map(task => 
-        task.id === id ? { ...task, completed: !task.completed } : task
-    );
+    const now = new Date().toISOString();
+    
+    tasks = tasks.map(task => {
+        if (task.id === id) {
+            const newCompletedState = !task.completed;
+            return {
+                ...task,
+                completed: newCompletedState,
+                completedAt: newCompletedState ? now : null,
+                updatedAt: now
+            };
+        }
+        return task;
+    });
+    
     saveTasks();
     updateTaskCount();
+    
+    // If task was just completed, award coins
+    const task = tasks.find(t => t.id === id);
+    if (task && task.completed) {
+        // Add visual feedback
+        const taskElement = document.querySelector(`[data-task-id="${id}"]`);
+        if (taskElement) {
+            taskElement.classList.add('completed');
+            
+            // Add a subtle animation
+            taskElement.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                taskElement.style.transform = 'scale(1)';
+            }, 100);
+        }
+        
+        // Award coins
+        addCoins(COIN_REWARD_TASK, `+${COIN_REWARD_TASK} coins for completing a task!`);
+        
+        // Check if all tasks are completed for daily bonus
+        checkDailyCompletion();
+    } else if (task) {
+        // Task was unchecked
+        const taskElement = document.querySelector(`[data-task-id="${id}"]`);
+        if (taskElement) {
+            taskElement.classList.remove('completed');
+        }
+    }
+    
+    // Re-render to update the UI
     renderTasks();
 }
 
 // Edit task text
-function editTask(id, newText) {
-    if (newText.trim()) {
-        tasks = tasks.map(task => 
-            task.id === id ? { ...task, text: newText.trim() } : task
-        );
-        saveTasks();
+function editTask(id, newText = null) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    // If newText is provided, update the task directly (for programmatic updates)
+    if (newText !== null) {
+        const trimmedText = newText.trim();
+        if (trimmedText) {
+            const taskIndex = tasks.findIndex(t => t.id === id);
+            if (taskIndex !== -1) {
+                const updatedTask = {
+                    ...task,
+                    text: trimmedText,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                tasks[taskIndex] = updatedTask;
+                saveTasks();
+                renderTasks();
+                showToast('Task updated successfully!');
+            }
+        } else if (newText === '') {
+            deleteTask(id);
+        }
+        return;
+    }
+    
+    // Create edit dialog
+    const dialog = document.createElement('div');
+    dialog.className = 'edit-dialog';
+    dialog.innerHTML = `
+        <div class="dialog-content">
+            <h3>Edit Task</h3>
+            <textarea class="edit-textarea" placeholder="Enter task description...">${escapeHtml(task.text)}</textarea>
+            <div class="dialog-buttons">
+                <button class="btn btn-cancel">Cancel</button>
+                <button class="btn btn-save">Save Changes</button>
+            </div>
+        </div>
+    `;
+    
+    // Add to DOM
+    document.body.appendChild(dialog);
+    
+    // Focus the textarea
+    const textarea = dialog.querySelector('.edit-textarea');
+    textarea.focus();
+    textarea.select();
+    
+    // Add event listeners
+    const saveBtn = dialog.querySelector('.btn-save');
+    const cancelBtn = dialog.querySelector('.btn-cancel');
+    
+    const saveChanges = () => {
+        const newText = textarea.value.trim();
+        const taskIndex = tasks.findIndex(t => t.id === id);
+        
+        if (newText && taskIndex !== -1) {
+            const updatedTask = {
+                ...task,
+                text: newText,
+                updatedAt: new Date().toISOString()
+            };
+            
+            tasks[taskIndex] = updatedTask;
+            saveTasks();
+            renderTasks();
+            showToast('Task updated successfully!');
+            closeDialog();
+        } else if (!newText) {
+            // If text is empty, ask if they want to delete
+            if (confirm('Task text is empty. Would you like to delete this task instead?')) {
+                deleteTask(id, true); // Skip confirmation
+                closeDialog();
+            } else {
+                textarea.focus();
+            }
+        }
+    };
+    
+    const closeDialog = () => {
+        if (document.body.contains(dialog)) {
+            document.body.removeChild(dialog);
+        }
+    };
+    
+    saveBtn.addEventListener('click', saveChanges);
+    cancelBtn.addEventListener('click', closeDialog);
+    
+    // Save on Enter, close on Escape
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveChanges();
+        } else if (e.key === 'Escape') {
+            closeDialog();
+        }
+    });
+    
+    // Close on outside click
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            closeDialog();
+        }
+    });
+    
+    // Helper function to escape HTML
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 }
 
 // Delete a task
-function deleteTask(id) {
-    if (confirm('Are you sure you want to delete this task?')) {
-        tasks = tasks.filter(task => task.id !== id);
+function deleteTask(id, skipConfirm = false) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    // Skip confirmation if explicitly set to true
+    if (skipConfirm) {
+        performDelete();
+        return;
+    }
+    
+    // Create a custom confirmation dialog
+    const dialog = document.createElement('div');
+    dialog.className = 'confirmation-dialog';
+    dialog.innerHTML = `
+        <div class="dialog-content">
+            <h3>Delete Task</h3>
+            <p>Are you sure you want to delete this task?</p>
+            <p class="task-preview">"${task.text.length > 50 ? task.text.substring(0, 50) + '...' : task.text}"</p>
+            <div class="dialog-buttons">
+                <button class="btn btn-cancel">Cancel</button>
+                <button class="btn btn-confirm">Delete</button>
+            </div>
+        </div>
+    `;
+    
+    // Add to DOM
+    document.body.appendChild(dialog);
+    
+    // Add event listeners
+    const confirmBtn = dialog.querySelector('.btn-confirm');
+    const cancelBtn = dialog.querySelector('.btn-cancel');
+    
+    const performDelete = () => {
+        tasks = tasks.filter(t => t.id !== id);
         saveTasks();
         renderTasks();
-    }
+        updateTaskCount();
+        showToast('Task deleted');
+        
+        // Remove dialog
+        if (document.body.contains(dialog)) {
+            document.body.removeChild(dialog);
+        }
+    };
+    
+    const closeDialog = () => {
+        if (document.body.contains(dialog)) {
+            document.body.removeChild(dialog);
+        }
+    };
+    
+    confirmBtn.addEventListener('click', performDelete);
+    cancelBtn.addEventListener('click', closeDialog);
+    
+    // Close on outside click
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            closeDialog();
+        }
+    });
+    
+    // Close on Escape key
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            closeDialog();
+            document.removeEventListener('keydown', handleKeyDown);
+        }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
 }
 
 // Clear all completed tasks
 function clearCompleted() {
-    tasks = tasks.filter(task => !task.completed);
-    saveTasks();
-    renderTasks();
+    const completedCount = tasks.filter(task => task.completed).length;
+    
+    if (completedCount === 0) {
+        showToast('No completed tasks to clear');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to clear ${completedCount} completed ${completedCount === 1 ? 'task' : 'tasks'}?`)) {
+        tasks = tasks.filter(task => !task.completed);
+        saveTasks();
+        updateTaskCount();
+        renderTasks();
+        
+        // Show feedback
+        showToast(`Cleared ${completedCount} ${completedCount === 1 ? 'task' : 'tasks'}`);
+    }
 }
 
 // Save tasks to localStorage
 function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    updateTaskCount();
+    saveUserData();
+}
+
+// Save user data to localStorage
+function saveUser() {
+    // Make sure we have the latest data before saving
+    const data = {
+        user: user,
+        tasks: tasks,
+        leaderboard: leaderboard
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Save all user data to localStorage
+function saveUserData() {
+    // Ensure leaderboard is updated before saving
+    updateLeaderboard();
+    
+    const data = {
+        user: user,
+        tasks: tasks,
+        leaderboard: leaderboard
+    };
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Load user data from localStorage
+function loadUserData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+        try {
+            const data = JSON.parse(savedData);
+            
+            // Initialize user data with defaults if not present
+            user = {
+                name: data.user?.name || '',
+                coins: data.user?.coins || 0,
+                lastCompletedDate: data.user?.lastCompletedDate || null,
+                dailyStreak: data.user?.dailyStreak || 0
+            };
+            
+            tasks = data.tasks || [];
+            leaderboard = data.leaderboard || [];
+            
+            // Check if it's a new day for daily streak
+            checkDailyStreak();
+            
+            // If user is logged in, show the app
+            if (user.name) {
+                showApp();
+            } else {
+                showLogin();
+            }
+        } catch (e) {
+            console.error('Error loading user data:', e);
+            // Reset to default values if there's an error
+            user = { name: '', coins: 0, lastCompletedDate: null, dailyStreak: 0 };
+            tasks = [];
+            leaderboard = [];
+            showLogin();
+        }
+    } else {
+        // No saved data, show login
+        showLogin();
+    }
 }
 
 // Update the task counter and progress bar
@@ -163,10 +543,23 @@ function updateTaskCount() {
     const activeTasks = tasks.filter(task => !task.completed).length;
     const totalTasks = tasks.length;
     const taskWord = activeTasks === 1 ? 'task' : 'tasks';
-    taskCount.textContent = `${activeTasks} ${taskWord} left`;
+    
+    if (taskCount) {
+        taskCount.textContent = `${activeTasks} ${taskWord} left`;
+    }
+    
+    // Update coin count display
+    if (coinCount) {
+        coinCount.textContent = user.coins;
+    }
     
     // Update progress bar
     updateProgressBar(totalTasks, activeTasks);
+    
+    // Check for daily completion bonus
+    if (totalTasks > 0 && activeTasks === 0) {
+        checkDailyCompletion();
+    }
 }
 
 // Update the progress bar
@@ -174,9 +567,12 @@ function updateProgressBar(totalTasks, activeTasks) {
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     
-    if (totalTasks === 0) {
+    if (!progressBar || !progressText) return;
+    
+    if (totalTasks === 0 || isNaN(totalTasks) || isNaN(activeTasks)) {
         progressBar.style.width = '0%';
         progressText.textContent = '0% Complete';
+        progressBar.style.backgroundColor = '#4caf50'; // Default color
         return;
     }
     
@@ -206,17 +602,101 @@ function updateProgressBar(totalTasks, activeTasks) {
 function createTaskElement(task) {
     const li = document.createElement('li');
     li.className = 'task-item';
-    li.dataset.id = task.id;
+    li.setAttribute('data-task-id', task.id);
     
+    if (task.completed) {
+        li.classList.add('completed');
+    }
+    
+    // Create checkbox container
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'checkbox-container';
+    
+    // Create custom checkbox
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
+    checkbox.id = `task-${task.id}`;
     checkbox.className = 'task-checkbox';
     checkbox.checked = task.completed;
     checkbox.addEventListener('change', () => toggleTask(task.id));
     
+    // Create custom checkbox appearance
+    const checkmark = document.createElement('span');
+    checkmark.className = 'checkmark';
+    
+    // Add checkmark icon when checked
+    if (task.completed) {
+        const checkIcon = document.createElement('i');
+        checkIcon.className = 'fas fa-check';
+        checkmark.appendChild(checkIcon);
+    }
+    
+    // Add checkbox and checkmark to container
+    checkboxContainer.appendChild(checkbox);
+    checkboxContainer.appendChild(checkmark);
+    
+    // Create task content container
+    const taskContent = document.createElement('div');
+    taskContent.className = 'task-content';
+    
+    // Create task text
     const taskText = document.createElement('span');
-    taskText.className = `task-text ${task.completed ? 'completed' : ''}`;
+    taskText.className = 'task-text';
     taskText.textContent = task.text;
+    
+    // Create task metadata (creation time)
+    const taskMeta = document.createElement('div');
+    taskMeta.className = 'task-meta';
+    
+    if (task.createdAt) {
+        const createdAt = new Date(task.createdAt);
+        const timeString = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateString = createdAt.toLocaleDateString();
+        
+        const timeElement = document.createElement('span');
+        timeElement.className = 'task-time';
+        timeElement.textContent = `${timeString} • ${dateString}`;
+        timeElement.title = `Created on ${dateString} at ${timeString}`;
+        
+        taskMeta.appendChild(timeElement);
+    }
+    
+    // Add text and metadata to content
+    taskContent.appendChild(taskText);
+    taskContent.appendChild(taskMeta);
+    
+    // Create action buttons container
+    const taskActions = document.createElement('div');
+    taskActions.className = 'task-actions';
+    
+    // Edit button
+    const editButton = document.createElement('button');
+    editButton.className = 'task-action edit-task';
+    editButton.title = 'Edit task';
+    editButton.innerHTML = '<i class="fas fa-edit"></i>';
+    editButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editTask(task.id);
+    });
+    
+    // Delete button
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'task-action delete-task';
+    deleteButton.title = 'Delete task';
+    deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+    deleteButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTask(task.id);
+    });
+    
+    // Add buttons to actions container
+    taskActions.appendChild(editButton);
+    taskActions.appendChild(deleteButton);
+    
+    // Add all elements to task item
+    li.appendChild(checkboxContainer);
+    li.appendChild(taskContent);
+    li.appendChild(taskActions);
     
     // Make task text editable
     taskText.addEventListener('dblclick', () => {
@@ -290,7 +770,9 @@ function createTaskElement(task) {
 
 // Render tasks based on current filter
 function renderTasks() {
-    // Clear current tasks
+    // Clear the task list
+    if (!taskList) return;
+    
     taskList.innerHTML = '';
     
     // Filter tasks based on current filter
@@ -307,24 +789,258 @@ function renderTasks() {
             filteredTasks = [...tasks];
     }
     
+    // Sort tasks: completed at bottom, then by creation date (newest first)
+    filteredTasks.sort((a, b) => {
+        // Completed tasks go to the bottom
+        if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+        }
+        
+        // Sort by creation date (newest first)
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+    });
+    
     // Add tasks to the list
     if (filteredTasks.length === 0) {
-        const emptyMessage = document.createElement('p');
+        const emptyMessage = document.createElement('li');
         emptyMessage.className = 'empty-message';
-        emptyMessage.textContent = currentFilter === 'all' 
-            ? 'No tasks yet. Add one above!' 
-            : currentFilter === 'active' 
-                ? 'No active tasks. Great job!' 
-                : 'No completed tasks yet.';
+        
+        if (currentFilter === 'active') {
+            emptyMessage.textContent = 'No active tasks';
+        } else if (currentFilter === 'completed') {
+            emptyMessage.textContent = 'No completed tasks';
+        } else {
+            emptyMessage.textContent = 'No tasks yet. Add one above!';
+        }
+        
         taskList.appendChild(emptyMessage);
     } else {
         filteredTasks.forEach(task => {
-            taskList.appendChild(createTaskElement(task));
+            const taskElement = createTaskElement(task);
+            if (task.completed) {
+                taskElement.classList.add('completed');
+            }
+            taskList.appendChild(taskElement);
         });
     }
     
-    updateTaskCount();
+    // Update the active filter button
+    updateActiveFilterButton();
 }
 
 // Initialize the app when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    loadUserData();
+    init();
+    if (startBtn) startBtn.addEventListener('click', startApp);
+    if (leaderboardBtn) leaderboardBtn.addEventListener('click', toggleLeaderboard);
+    
+    // Close leaderboard when clicking outside
+    document.addEventListener('click', (e) => {
+        if (leaderboardContainer && !leaderboardContainer.contains(e.target) && 
+            leaderboardBtn && !leaderboardBtn.contains(e.target)) {
+            leaderboardContainer.classList.remove('show');
+        }
+    });
+});
+
+// Load user data from localStorage
+function loadUserData() {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+        const data = JSON.parse(savedData);
+        user = data.user || user;
+        tasks = data.tasks || [];
+        leaderboard = data.leaderboard || [];
+        
+        // Check if it's a new day for daily streak
+        checkDailyStreak();
+        
+        // If user is logged in, show the app
+        if (user.name) {
+            showApp();
+        } else {
+            showLogin();
+        }
+    } else {
+        showLogin();
+    }
+}
+
+// Save user data to localStorage
+function saveUserData() {
+    const data = {
+        user,
+        tasks,
+        leaderboard
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Show login modal
+function showLogin() {
+    if (loginModal) loginModal.style.display = 'flex';
+    if (document.querySelector('.taskmaster-container')) {
+        document.querySelector('.taskmaster-container').style.display = 'none';
+    }
+}
+
+// Show the main app
+function showApp() {
+    if (loginModal) loginModal.style.display = 'none';
+    const container = document.querySelector('.taskmaster-container');
+    if (container) container.style.display = 'block';
+    
+    if (userGreeting) userGreeting.textContent = user.name;
+    if (coinCount) coinCount.textContent = user.coins;
+    
+    // Update leaderboard with current user
+    updateLeaderboard();
+}
+
+// Start the app with username
+function startApp() {
+    const username = usernameInput.value.trim();
+    if (username) {
+        user.name = username;
+        user.coins = user.coins || 0;
+        user.lastCompletedDate = user.lastCompletedDate || new Date().toISOString();
+        user.dailyStreak = user.dailyStreak || 0;
+        
+        saveUserData();
+        showApp();
+        showToast(`Welcome, ${user.name}! Start completing tasks to earn coins!`);
+    } else {
+        alert('Please enter your name to continue');
+    }
+}
+
+// Add coins to user's balance
+function addCoins(amount, message) {
+    if (!amount) return;
+    
+    user.coins += amount;
+    if (coinCount) coinCount.textContent = user.coins;
+    
+    if (message) {
+        showToast(message);
+    }
+    
+    // Update leaderboard with new coin balance
+    updateLeaderboard();
+    saveUserData();
+}
+
+// Show toast notification
+function showToast(message, duration = 3000) {
+    if (!toast || !toastMessage) return;
+    
+    toastMessage.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
+
+// Toggle leaderboard visibility
+function toggleLeaderboard() {
+    if (leaderboardContainer) {
+        leaderboardContainer.classList.toggle('show');
+    }
+}
+
+// Update leaderboard with current user data
+function updateLeaderboard() {
+    if (!leaderboardList) return;
+    
+    // Add or update current user in leaderboard
+    const userIndex = leaderboard.findIndex(u => u.name === user.name);
+    if (userIndex === -1 && user.name) {
+        leaderboard.push({ name: user.name, coins: user.coins });
+    } else if (userIndex !== -1) {
+        leaderboard[userIndex].coins = user.coins;
+    }
+    
+    // Sort by coins (descending)
+    leaderboard.sort((a, b) => b.coins - a.coins);
+    
+    // Update UI
+    leaderboardList.innerHTML = '';
+    
+    leaderboard.forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.className = `leaderboard-item ${entry.name === user.name ? 'leaderboard-you' : ''}`;
+        li.innerHTML = `
+            <span class="leaderboard-rank">${index + 1}</span>
+            <span class="leaderboard-name" title="${entry.name}">${entry.name}</span>
+            <span class="leaderboard-coins">
+                <i class="fas fa-coins"></i>
+                ${entry.coins}
+            </span>
+        `;
+        leaderboardList.appendChild(li);
+    });
+    
+    saveUserData();
+}
+
+// Check and update daily streak
+function checkDailyStreak() {
+    if (!user.lastCompletedDate) return;
+    
+    const lastDate = new Date(user.lastCompletedDate);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Reset time parts for accurate date comparison
+    lastDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    // If last completion was yesterday, increment streak
+    if (lastDate.getTime() === yesterday.getTime()) {
+        user.dailyStreak++;
+    } 
+    // If last completion was before yesterday, reset streak
+    else if (lastDate.getTime() < yesterday.getTime()) {
+        user.dailyStreak = 1;
+    }
+    
+    user.lastCompletedDate = today.toISOString();
+    saveUserData();
+}
+
+// Check for daily completion bonus
+function checkDailyCompletion() {
+    const today = new Date().toDateString();
+    const lastCompletion = user.lastCompletedDate ? new Date(user.lastCompletedDate).toDateString() : null;
+    
+    // If already completed today, return
+    if (lastCompletion === today) return false;
+    
+    // Check if all tasks are completed
+    const allCompleted = tasks.length > 0 && tasks.every(task => task.completed);
+    
+    if (allCompleted) {
+        // Add daily bonus
+        addCoins(COIN_REWARD_DAILY, `🎉 Daily bonus! +${COIN_REWARD_DAILY} coins for completing all tasks!`);
+        
+        // Update last completed date
+        user.lastCompletedDate = new Date().toISOString();
+        user.dailyStreak++;
+        
+        // Show streak message if applicable
+        if (user.dailyStreak > 1) {
+            showToast(`🔥 ${user.dailyStreak}-day streak! Keep it up!`);
+        }
+        
+        saveUserData();
+        return true;
+    }
+    
+    return false;
+}
