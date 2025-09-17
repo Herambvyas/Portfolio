@@ -5,6 +5,54 @@ const taskList = document.getElementById('taskList');
 const taskCount = document.getElementById('taskCount');
 const clearCompletedBtn = document.getElementById('clearCompleted');
 const filterButtons = document.querySelectorAll('.filter-btn');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle.querySelector('i');
+
+// Theme Management
+const THEME_KEY = 'taskmaster-theme';
+const THEMES = {
+    LIGHT: 'light',
+    DARK: 'dark'
+};
+
+// Set theme based on user preference or saved preference
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+    
+    // Update icon
+    if (theme === THEMES.DARK) {
+        themeIcon.classList.remove('fa-moon');
+        themeIcon.classList.add('fa-sun');
+    } else {
+        themeIcon.classList.remove('fa-sun');
+        themeIcon.classList.add('fa-moon');
+    }
+}
+
+// Toggle between light and dark theme
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK;
+    setTheme(newTheme);
+}
+
+// Initialize theme from localStorage or prefer-color-scheme
+function initTheme() {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else {
+        setTheme(prefersDark ? THEMES.DARK : THEMES.LIGHT);
+    }
+}
+
+// Event listener for theme toggle
+if (themeToggle) {
+    themeToggle.addEventListener('click', toggleTheme);
+}
 
 // State
 let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
@@ -12,6 +60,9 @@ let currentFilter = 'all';
 
 // Initialize the app
 function init() {
+    // Initialize theme
+    initTheme();
+    
     // Load tasks from localStorage
     renderTasks();
     

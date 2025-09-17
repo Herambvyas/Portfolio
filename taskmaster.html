@@ -3,18 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaskMaster Pro | Heramb Vyas</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>TaskMaster Pro</title>
+    <meta name="description" content="A sleek, responsive task management application built with vanilla JavaScript">
+    <meta name="keywords" content="task manager, to-do list, productivity, task management">
+    <meta name="author" content="Heramb Vyas">
     <link rel="stylesheet" href="taskmaster.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/48/000000/task-completed.png">
 </head>
 <body>
-    <a href="index.html" class="back-button"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
+    <a href="https://herambvyas.github.io/Portfolio/" class="back-button" target="_blank"><i class="fas fa-arrow-left"></i> Back to Portfolio</a>
     
     <div class="taskmaster-container">
         <header class="taskmaster-header">
-            <h1><i class="fas fa-tasks"></i> TaskMaster Pro</h1>
-            <p>Your personal task management solution</p>
+            <div>
+                <h1><i class="fas fa-tasks"></i> TaskMaster Pro</h1>
+                <p>Your personal task management solution</p>
+            </div>
+            <div class="header-buttons">
+                <a href="https://github.com/Herambvyas/Portfolio/blob/main/taskmaster.html" target="_blank" class="github-button" aria-label="View source on GitHub">
+                    <i class="fab fa-github"></i> View on GitHub
+                </a>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
         </header>
 
         <div class="task-input-container">
