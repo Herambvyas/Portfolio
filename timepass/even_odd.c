@@ -1,20 +1,26 @@
 #include <stdio.h>
 
-int main() {
-    int number;
+int main() 
+{
+    int x, y, z;
     
-    printf("Enter a number: ");
-    scanf("%d", &number);
+    printf("Enter three numbers: ");
+    scanf("%d %d %d", &x, &y, &z);
     
-    if (number % 2 == 0) {
-        printf("%d is an even number\n", number);
-    } else {
-        printf("%d is an odd number\n", number);
+    if(x > y)
+    {
+        if(x > z)
+            printf("%d is the greatest number\n", x);
+        else
+            printf("%d is the greatest number\n", z);
     }
-    
-    printf("Press any key to continue...");
-    getchar(); // consume the newline from scanf
-    getchar(); // wait for user input
+    else
+    {
+        if(y > z)
+            printf("%d is the greatest number\n", y);
+        else
+            printf("%d is the greatest number\n", z);
+    }
     
     return 0;
 }
