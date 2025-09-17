@@ -919,27 +919,29 @@ function startApp() {
 
 // Add coins to user's balance
 function addCoins(amount, message) {
-    if (!amount) return;
-    
+    if (!user.coins) user.coins = 0;
     user.coins += amount;
     if (coinCount) coinCount.textContent = user.coins;
-    
+    saveUserData();
+
     if (message) {
         showToast(message);
     }
-    
-    // Update leaderboard with new coin balance
+
+    // Update leaderboard when coins are added
     updateLeaderboard();
-    saveUserData();
+
+    // Check for daily completion bonus when coins are added
+    checkDailyCompletion();
 }
 
 // Show toast notification
 function showToast(message, duration = 3000) {
     if (!toast || !toastMessage) return;
-    
+
     toastMessage.textContent = message;
     toast.classList.add('show');
-    
+
     setTimeout(() => {
         toast.classList.remove('show');
     }, duration);
@@ -949,97 +951,159 @@ function showToast(message, duration = 3000) {
 function toggleLeaderboard() {
     if (leaderboardContainer) {
         leaderboardContainer.classList.toggle('show');
+        if (leaderboardContainer.classList.contains('show')) {
+            // Update leaderboard when opened
+            updateLeaderboard();
+        }
     }
 }
 
 // Update leaderboard with current user data
 function updateLeaderboard() {
     if (!leaderboardList) return;
-    
-    // Add or update current user in leaderboard
-    const userIndex = leaderboard.findIndex(u => u.name === user.name);
+
+    // Add current user to leaderboard if not already present
+    const userIndex = leaderboard.findIndex(entry => entry.name === user.name);
     if (userIndex === -1 && user.name) {
-        leaderboard.push({ name: user.name, coins: user.coins });
+        leaderboard.push({
+            name: user.name,
+            coins: user.coins || 0,
+            lastUpdated: new Date().toISOString(),
+            streak: user.dailyStreak || 0
+        });
     } else if (userIndex !== -1) {
-        leaderboard[userIndex].coins = user.coins;
+        // Update existing user's coins and streak
+        leaderboard[userIndex].coins = user.coins || 0;
+        leaderboard[userIndex].lastUpdated = new Date().toISOString();
+        leaderboard[userIndex].streak = user.dailyStreak || 0;
     }
-    
-    // Sort by coins (descending)
+
+    // Sort leaderboard by coins (descending)
     leaderboard.sort((a, b) => b.coins - a.coins);
-    
-    // Update UI
+
+    // Keep only top 10 entries to prevent localStorage from getting too large
+    if (leaderboard.length > 10) {
+        leaderboard = leaderboard.slice(0, 10);
+    }
+
+    // Save updated leaderboard
+    saveUserData();
+
+    // Render leaderboard
+    renderLeaderboard();
+}
+
+// Render the leaderboard
+function renderLeaderboard() {
+    if (!leaderboardList) return;
+
+    // Clear current leaderboard
     leaderboardList.innerHTML = '';
-    
+
+    if (leaderboard.length === 0) {
+        const emptyMessage = document.createElement('li');
+        emptyMessage.className = 'leaderboard-empty';
+        emptyMessage.textContent = 'No entries yet. Complete tasks to earn coins!';
+        leaderboardList.appendChild(emptyMessage);
+        return;
+    }
+
+    // Add each leaderboard entry
     leaderboard.forEach((entry, index) => {
         const li = document.createElement('li');
-        li.className = `leaderboard-item ${entry.name === user.name ? 'leaderboard-you' : ''}`;
-        li.innerHTML = `
-            <span class="leaderboard-rank">${index + 1}</span>
-            <span class="leaderboard-name" title="${entry.name}">${entry.name}</span>
-            <span class="leaderboard-coins">
-                <i class="fas fa-coins"></i>
-                ${entry.coins}
-            </span>
-        `;
+        li.className = 'leaderboard-item';
+        if (entry.name === user.name) {
+            li.classList.add('current-user');
+        }
+
+        const rank = document.createElement('span');
+        rank.className = 'leaderboard-rank';
+        rank.textContent = `#${index + 1}`;
+
+        const name = document.createElement('span');
+        name.className = 'leaderboard-name';
+        name.textContent = entry.name;
+
+        const coins = document.createElement('span');
+        coins.className = 'leaderboard-coins';
+        coins.innerHTML = `<i class="fas fa-coins"></i> ${entry.coins}`;
+
+        const streak = document.createElement('span');
+        streak.className = 'leaderboard-streak';
+        streak.innerHTML = `<i class="fas fa-fire"></i> ${entry.streak || 0}d`;
+
+        li.appendChild(rank);
+        li.appendChild(name);
+        li.appendChild(coins);
+        li.appendChild(streak);
+
         leaderboardList.appendChild(li);
     });
-    
-    saveUserData();
 }
 
 // Check and update daily streak
 function checkDailyStreak() {
-    if (!user.lastCompletedDate) return;
-    
+    if (!user.lastCompletedDate) {
+        user.dailyStreak = 0;
+        return;
+    }
+
     const lastDate = new Date(user.lastCompletedDate);
     const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Reset time parts for accurate date comparison
+
+    // Reset time for comparison
     lastDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
-    yesterday.setHours(0, 0, 0, 0);
-    
-    // If last completion was yesterday, increment streak
-    if (lastDate.getTime() === yesterday.getTime()) {
-        user.dailyStreak++;
-    } 
-    // If last completion was before yesterday, reset streak
-    else if (lastDate.getTime() < yesterday.getTime()) {
-        user.dailyStreak = 1;
+
+    const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
+    const diffDays = Math.round(Math.abs((today - lastDate) / oneDay));
+
+    if (diffDays === 1) {
+        // Consecutive day
+        user.dailyStreak = (user.dailyStreak || 0) + 1;
+        showToast(`🔥 Streak! ${user.dailyStreak} days in a row!`);
+    } else if (diffDays > 1) {
+        // Streak broken
+        if (user.dailyStreak > 0) {
+            showToast(`😢 Streak of ${user.dailyStreak} days broken!`);
+        }
+        user.dailyStreak = 0;
     }
-    
+
     user.lastCompletedDate = today.toISOString();
     saveUserData();
+    updateLeaderboard();
 }
 
 // Check for daily completion bonus
 function checkDailyCompletion() {
-    const today = new Date().toDateString();
-    const lastCompletion = user.lastCompletedDate ? new Date(user.lastCompletedDate).toDateString() : null;
-    
-    // If already completed today, return
-    if (lastCompletion === today) return false;
-    
-    // Check if all tasks are completed
-    const allCompleted = tasks.length > 0 && tasks.every(task => task.completed);
-    
-    if (allCompleted) {
-        // Add daily bonus
-        addCoins(COIN_REWARD_DAILY, `🎉 Daily bonus! +${COIN_REWARD_DAILY} coins for completing all tasks!`);
-        
-        // Update last completed date
-        user.lastCompletedDate = new Date().toISOString();
-        user.dailyStreak++;
-        
-        // Show streak message if applicable
-        if (user.dailyStreak > 1) {
-            showToast(`🔥 ${user.dailyStreak}-day streak! Keep it up!`);
+    if (!user.lastCompletedDate) return;
+
+    const lastDate = new Date(user.lastCompletedDate);
+    const today = new Date();
+
+    // Reset time for comparison
+    lastDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (lastDate < today) {
+        // Check if all tasks are completed
+        const allCompleted = tasks.length > 0 && tasks.every(task => task.completed);
+
+        if (allCompleted) {
+            // Award bonus coins for completing all tasks
+            const streakBonus = Math.min(Math.floor(user.dailyStreak / 7) * 10, 50); // Max 50% bonus
+            const bonusCoins = COIN_REWARD_DAILY + Math.floor((COIN_REWARD_DAILY * streakBonus) / 100);
+
+            addCoins(bonusCoins, `🎉 Daily bonus! +${bonusCoins} coins!`);
+
+            // Update last completed date
+            user.lastCompletedDate = today.toISOString();
+            saveUserData();
+
+            // Update streak
+            checkDailyStreak();
         }
-        
-        saveUserData();
-        return true;
     }
     
     return false;
